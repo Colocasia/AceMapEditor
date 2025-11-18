@@ -1,8 +1,8 @@
 {
-  "name": "com.colocasia.acemapeditor",
+  "name": "com.acemapeditor.unity",
   "version": "0.1.0",
-  "displayName": "Ace Map Editor",
-  "description": "A StarCraft 2 Galaxy Editor-like map editor for Unity. Features terrain editing, unit placement, trigger system, and more.",
+  "displayName": "Ace Map Editor (Unity)",
+  "description": "Unity implementation for Ace Map Editor - A StarCraft 2 Galaxy Editor-like map editor. Requires AceMapEditor.Core.dll.",
   "unity": "2021.3",
   "unityRelease": "0f1",
   "documentationUrl": "https://github.com/Colocasia/AceMapEditor",
@@ -17,7 +17,8 @@
     "galaxy",
     "starcraft",
     "trigger",
-    "level design"
+    "level design",
+    "unity"
   ],
   "author": {
     "name": "Colocasia",

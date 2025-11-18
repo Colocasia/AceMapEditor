@@ -7,17 +7,47 @@
 
 ## [Unreleased]
 
-### 重大变更
-- **目录结构重构**: 采用引擎分层架构
-  - `Core/` → `AceMapEditor.Core/` (引擎无关核心逻辑)
-  - `Editor/`, `Runtime/`, `Shaders/`, `Resources/`, `Tests/` → `AceMapEditor.Unity/`
-  - 为未来扩展到Godot等引擎做好准备
-  - Core层强制 `noEngineReferences: true`，确保可移植性
+### 重大变更 - 架构完全重构
+- **Core库作为.NET Standard 2.1类库**
+  - Core不再是Unity Package，改为标准.NET项目
+  - 编译为`AceMapEditor.Core.dll`，真正引擎无关
+  - 移除所有Unity特定文件（.asmdef等）
+
+- **Unity Package重命名和重构**
+  - `com.colocasia.acemapeditor` → `com.acemapeditor.unity`
+  - 结构：`Packages/com.acemapeditor.unity/`
+  - Unity Package引用预编译的Core.dll（位于Plugins/）
+
+- **DLL分发模式**
+  - Core编译为DLL，Unity和Godot共享同一个DLL
+  - 添加自动化构建脚本：`Build/build-core.sh`
+  - DLL自动复制到Unity Package和Releases目录
+
+### 新增
+- Core项目文件：`Core/AceMapEditor.Core.csproj`
+- 构建脚本：`Build/build-core.sh`
+- Core README：详细的Core库说明文档
+- Releases目录：存放编译后的DLL
+
+### 目录结构变更
+```
+旧结构:
+├── AceMapEditor.Core/
+├── AceMapEditor.Unity/
+└── package.json (根目录)
+
+新结构:
+├── Core/                       # .NET Standard 2.1项目
+├── Packages/
+│   └── com.acemapeditor.unity/ # Unity Package
+├── Build/                      # 构建脚本
+└── Releases/                   # 发布DLL
+```
 
 ### 更新
-- 文档更新以反映新的目录结构
-- README.md架构说明更新
-- 项目文档添加Godot扩展示例
+- 完全重写README.md，反映新的DLL架构
+- 更新所有文档的目录结构说明
+- Unity安装地址变更为：`?path=/Packages/com.acemapeditor.unity`
 
 ### 计划中
 - 地形编辑系统实现

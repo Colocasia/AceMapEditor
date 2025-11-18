@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+    <!-- Package Info -->
+    <PackageId>AceMapEditor.Core</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Colocasia</Authors>
+    <Company>Colocasia</Company>
+    <Description>Core logic library for AceMapEditor - A StarCraft 2 Galaxy Editor-like map editor. Engine-agnostic implementation.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Colocasia/AceMapEditor</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>map-editor;rts;terrain;triggers;engine-agnostic</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)'=='Release'">
+    <Optimize>true</Optimize>
+    <DebugType>portable</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- No dependencies - pure C# -->
+  </ItemGroup>
+
+</Project>
