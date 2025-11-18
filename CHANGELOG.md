@@ -7,6 +7,18 @@
 
 ## [Unreleased]
 
+### 重大变更
+- **目录结构重构**: 采用引擎分层架构
+  - `Core/` → `AceMapEditor.Core/` (引擎无关核心逻辑)
+  - `Editor/`, `Runtime/`, `Shaders/`, `Resources/`, `Tests/` → `AceMapEditor.Unity/`
+  - 为未来扩展到Godot等引擎做好准备
+  - Core层强制 `noEngineReferences: true`，确保可移植性
+
+### 更新
+- 文档更新以反映新的目录结构
+- README.md架构说明更新
+- 项目文档添加Godot扩展示例
+
 ### 计划中
 - 地形编辑系统实现
 - 单位放置系统
