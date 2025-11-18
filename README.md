@@ -69,14 +69,21 @@
 
 ## 架构设计
 
-本插件采用分层架构设计，核心逻辑与Unity解耦，便于未来移植到其他引擎（如Godot）：
+本插件采用**引擎分层架构**，核心逻辑与Unity完全解耦，便于未来移植到其他引擎（如Godot）：
 
 ```
-├── Core/           # 引擎无关的核心逻辑
-├── Editor/         # Unity编辑器扩展
-├── Runtime/        # 运行时代码
-├── Shaders/        # URP Shader
-└── Resources/      # 资源定义
+AceMapEditor/
+├── AceMapEditor.Core/     # 引擎无关的核心逻辑（纯C#）
+│   ├── Interfaces/        # 引擎抽象接口
+│   ├── Data/              # 数据模型
+│   ├── Editor/            # 编辑器逻辑
+│   └── Utilities/         # 工具类
+│
+└── AceMapEditor.Unity/    # Unity实现层
+    ├── Editor/            # Unity编辑器扩展
+    ├── Runtime/           # 运行时组件
+    ├── Shaders/           # URP Shader
+    └── Resources/         # Unity资源
 ```
 
 详细文档请查看 `Docs/` 目录。
