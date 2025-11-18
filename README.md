@@ -41,7 +41,7 @@
 1. 打开Unity编辑器
 2. 打开 `Window > Package Manager`
 3. 点击 `+` 按钮，选择 `Add package from git URL...`
-4. 输入：`https://github.com/yourusername/AceMapEditor.git`
+4. 输入：`https://github.com/Colocasia/AceMapEditor.git`
 
 ### 方式2：本地Package安装
 
