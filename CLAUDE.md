@@ -36,57 +36,111 @@ Unity Implementation                  ← Unity 特定
 
 ### 代码组织规则
 
-1. **核心逻辑 (`Core/`)**
-   - 不得直接引用 `UnityEngine` 命名空间
-   - 必须通过接口与引擎交互
-   - 使用纯 C# 数据类型（优先使用 `readonly struct`）
-   - 小型数据结构使用 struct 而非 class
+1. **核心逻辑 (`Core/src/`)**
+   - **编译为DLL**：.NET Standard 2.1项目，编译后供各引擎引用
+   - **零引擎依赖**：不得直接引用 `UnityEngine`、`Godot` 等任何引擎命名空间
+   - **接口驱动**：必须通过接口与引擎交互
+   - **使用System.Numerics**：使用 `System.Numerics.Vector3` 而非 `UnityEngine.Vector3`
+   - **小型数据结构**：使用 struct 而非 class（高性能）
 
-2. **Unity 实现 (`Editor/`, `Runtime/`)**
-   - 实现引擎抽象接口
-   - 处理 Unity 特定的编辑器 UI
-   - SceneView 集成、Gizmos、Handles
+2. **Unity 实现 (`Packages/com.acemapeditor.unity/Editor/`)**
+   - **引用Core DLL**：通过 Plugins/ 引用预编译的 Core.dll
+   - **适配器实现**：实现Core定义的接口（如 `ISceneViewAdapter`）
+   - **Unity特定代码**：EditorWindow、SceneView、Gizmos、Handles等
+   - **命名空间**：`AceMapEditor.Unity.Editor`
 
-3. **数据层 (`Core/Data/`)**
-   - 使用标准序列化格式（JSON）
-   - 避免 Unity 特定类型
-   - 优先使用 `readonly struct`（如 `Vector3f`）
+3. **数据层 (`Core/src/Data/`)**
+   - **标准序列化**：使用JSON格式（System.Text.Json + 源生成器）
+   - **避免引擎类型**：不使用Unity/Godot特定类型
+   - **使用System.Numerics**：Vector3、Vector4、Quaternion、Matrix4x4
 
 4. **高性能代码**
-   - 频繁使用的小型数据用 `readonly struct`
-   - 大批量数据处理用 `NativeArray<T>`
-   - 临时缓冲区用 `Span<T>` + `stackalloc`
-   - 关键路径考虑 `unsafe` 指针
+   - **struct优先**：频繁使用的小型数据用 struct
+   - **System.Numerics**：利用SIMD优化的数学类型
+   - **批量处理**：使用 `NativeArray<T>`（Unity）或 `Span<T>`
+   - **临时缓冲区**：`Span<T>` + `stackalloc`（栈分配）
+   - **unsafe代码**：关键路径考虑 `unsafe` 指针
 
 ---
 
 ## 项目结构
 
+**重要**：本项目采用 **DLL + UPM Package** 架构，Core编译为独立DLL供引擎层引用。
+
 ```
-AceMapEditor/
-├── Editor/                      # Unity 编辑器代码
-│   ├── Windows/                 # 编辑器窗口（EditorWindow）
-│   ├── Tools/                   # 编辑器工具
-│   ├── Inspectors/              # 自定义 Inspector
-│   ├── SceneView/               # SceneView 集成
-│   └── Adapters/                # Unity 适配器实现
-├── Runtime/                     # 运行时代码（如需要）
-├── Core/                        # 核心逻辑（引擎无关）
-│   ├── Interfaces/              # 引擎抽象接口
-│   ├── Data/                    # 数据模型
-│   ├── Editor/                  # 编辑器逻辑
-│   ├── Serialization/           # 序列化
-│   └── Utilities/               # 工具类
-├── Shaders/                     # URP Shader 文件
-│   ├── TerrainBlend.shader
-│   └── TerrainBlend.shadergraph
-├── Resources/                   # 资源文件
-│   ├── Definitions/             # ScriptableObject 定义
-│   └── Textures/
-└── Docs/                        # 文档
-    ├── 需求文档.md              # 功能需求和开发阶段
-    ├── 项目文档.md              # 技术方案和架构
-    └── 代码规范.md              # 代码规范和性能优化
+AceMapEditor/                              # 仓库根目录
+│
+├── Core/                                  # 核心逻辑层（.NET Standard 2.1 DLL）
+│   ├── AceMapEditor.Core.csproj           # .NET 项目文件
+│   ├── README.md                          # Core 层说明
+│   ├── src/                               # 源代码（引擎无关）
+│   │   ├── Data/                          # 数据模型
+│   │   │   ├── MapData.cs                 # 地图数据
+│   │   │   └── EditorState.cs             # 编辑器状态
+│   │   ├── Editor/                        # 编辑器逻辑（纯C#）
+│   │   │   └── MapEditor.cs               # 地图编辑器核心类
+│   │   ├── Interfaces/                    # 引擎抽象接口
+│   │   │   ├── ISceneViewAdapter.cs       # 场景视图接口
+│   │   │   ├── IGizmosAdapter.cs          # Gizmos绘制接口
+│   │   │   ├── IInputAdapter.cs           # 输入处理接口
+│   │   │   └── IEditorUIAdapter.cs        # UI适配器接口
+│   │   ├── Serialization/                 # 序列化（JSON）
+│   │   └── Utilities/                     # 工具类
+│   └── bin/Release/netstandard2.1/        # 编译输出
+│       └── AceMapEditor.Core.dll          # 核心DLL（24KB）
+│
+├── Packages/com.acemapeditor.unity/       # Unity Package（UPM）
+│   ├── package.json                       # UPM 配置文件
+│   ├── Editor/                            # Unity 编辑器扩展
+│   │   ├── AceMapEditor.Editor.asmdef     # Assembly Definition
+│   │   ├── Adapters/                      # Unity 适配器实现
+│   │   │   ├── UnitySceneViewAdapter.cs
+│   │   │   ├── UnityGizmosAdapter.cs
+│   │   │   ├── UnityInputAdapter.cs
+│   │   │   └── UnityEditorUIAdapter.cs
+│   │   ├── Windows/                       # 编辑器窗口
+│   │   │   └── AceMapEditorWindow.cs      # 主编辑器窗口
+│   │   ├── Tools/                         # SceneView 工具
+│   │   ├── Inspectors/                    # 自定义 Inspector
+│   │   └── SceneView/                     # SceneView 扩展
+│   ├── Runtime/                           # Unity 运行时（可选）
+│   │   ├── AceMapEditor.Runtime.asmdef
+│   │   └── Components/                    # MonoBehaviour 组件
+│   ├── Plugins/                           # 预编译DLL存放目录
+│   │   ├── AceMapEditor.Core.dll          ← Core编译后复制到这里
+│   │   └── AceMapEditor.Core.pdb          # 调试符号
+│   ├── Shaders/                           # URP Shader
+│   │   └── TerrainBlend.shader
+│   ├── Resources/                         # Unity 资源
+│   │   ├── Definitions/                   # 游戏数据定义（JSON）
+│   │   └── Textures/
+│   └── Tests/                             # 单元测试
+│
+├── Build/                                 # 构建脚本
+│   └── build-core.sh                      # Core DLL 自动构建脚本
+│
+├── Releases/                              # DLL 发布目录
+│   └── netstandard2.1/
+│       ├── AceMapEditor.Core.dll
+│       └── AceMapEditor.Core.pdb
+│
+├── Docs/                                  # 项目文档
+│   ├── 需求文档.md                        # 功能需求和开发阶段
+│   ├── 项目文档.md                        # 技术方案和架构
+│   └── 代码规范.md                        # 代码规范和性能优化
+│
+└── [未来] Godot/                          # Godot项目（未来添加）
+    ├── project.godot                      # Godot 项目文件
+    ├── addons/acemapeditor/               # Godot 插件
+    │   ├── plugin.cfg                     # Godot 插件配置
+    │   ├── Libs/
+    │   │   └── AceMapEditor.Core.dll      ← 复用同一个Core DLL
+    │   ├── Adapters/                      # Godot版本的适配器
+    │   │   ├── GodotSceneViewAdapter.cs   # 实现ISceneViewAdapter
+    │   │   └── GodotGizmosAdapter.cs      # 实现IGizmosAdapter
+    │   └── Editor/
+    │       └── MapEditorDock.cs           # Godot编辑器Dock
+    └── Scenes/                            # Godot 测试场景
 ```
 
 ---
@@ -319,12 +373,185 @@ Window > General > Test Runner > Run All
 
 ---
 
+## 未来扩展：添加Godot支持
+
+当需要添加Godot支持时，按以下步骤操作：
+
+### 1. 创建Godot项目目录
+
+在仓库根目录创建 `Godot/` 目录：
+
+```bash
+mkdir -p Godot/addons/acemapeditor/{Libs,Adapters,Editor}
+```
+
+### 2. 初始化Godot项目
+
+```bash
+cd Godot
+# 创建Godot项目文件（或用Godot编辑器创建）
+touch project.godot
+```
+
+### 3. 配置Godot插件
+
+创建 `Godot/addons/acemapeditor/plugin.cfg`：
+
+```ini
+[plugin]
+name="Ace Map Editor"
+description="地图编辑器插件"
+author="AceMapEditor Team"
+version="0.1.0"
+script="Editor/MapEditorPlugin.cs"
+```
+
+### 4. 复制Core DLL
+
+**选项A：手动复制**
+```bash
+cp Releases/netstandard2.1/AceMapEditor.Core.dll Godot/addons/acemapeditor/Libs/
+```
+
+**选项B：修改构建脚本**
+编辑 `Build/build-core.sh`，添加Godot目标：
+```bash
+# 复制到Godot插件
+if [ -d "../Godot/addons/acemapeditor/Libs" ]; then
+    cp $OUTPUT_DLL ../Godot/addons/acemapeditor/Libs/
+    echo "✓ Copied to Godot addons"
+fi
+```
+
+### 5. 实现Godot适配器
+
+在 `Godot/addons/acemapeditor/Adapters/` 创建适配器：
+
+**GodotSceneViewAdapter.cs**：
+```csharp
+using Godot;
+using AceMapEditor.Core.Interfaces;
+using System.Numerics;
+
+public class GodotSceneViewAdapter : ISceneViewAdapter
+{
+    private readonly Node3D viewport;
+
+    public GodotSceneViewAdapter(Node3D viewport)
+    {
+        this.viewport = viewport;
+    }
+
+    public (Vector3 origin, Vector3 direction) GetMouseRay(Vector2 mousePosition)
+    {
+        // 使用Godot Camera3D.ProjectRayOrigin/ProjectRayNormal
+        // 转换Godot.Vector3 到 System.Numerics.Vector3
+    }
+
+    // 实现其他接口方法...
+}
+```
+
+**GodotGizmosAdapter.cs**：
+```csharp
+public class GodotGizmosAdapter : IGizmosAdapter
+{
+    public void DrawLine(Vector3 start, Vector3 end)
+    {
+        // 使用Godot的DebugDraw或ImmediateMesh
+    }
+
+    // 实现其他接口方法...
+}
+```
+
+### 6. 创建Godot编辑器Dock
+
+**MapEditorDock.cs**：
+```csharp
+using Godot;
+using AceMapEditor.Core.Editor;
+
+[Tool]
+public partial class MapEditorDock : Control
+{
+    private MapEditor mapEditor;
+
+    public override void _Ready()
+    {
+        // 初始化适配器
+        var sceneAdapter = new GodotSceneViewAdapter(...);
+        var gizmosAdapter = new GodotGizmosAdapter(...);
+        // ...
+
+        // 创建MapEditor实例
+        mapEditor = new MapEditor(sceneAdapter, gizmosAdapter, ...);
+    }
+}
+```
+
+### 7. 创建插件入口
+
+**MapEditorPlugin.cs**：
+```csharp
+using Godot;
+
+[Tool]
+public partial class MapEditorPlugin : EditorPlugin
+{
+    private MapEditorDock dock;
+
+    public override void _EnterTree()
+    {
+        dock = new MapEditorDock();
+        AddControlToDock(DockSlot.LeftUl, dock);
+    }
+
+    public override void _ExitTree()
+    {
+        RemoveDock(dock);
+        dock.QueueFree();
+    }
+}
+```
+
+### 8. 关键点
+
+**DLL引用**：
+- Godot 4.x支持.NET Standard 2.1
+- 确保Godot项目配置为C#项目（.NET 6+）
+- DLL放在Godot可识别的路径（如 `addons/*/Libs/`）
+
+**类型转换**：
+- `System.Numerics.Vector3` ↔ `Godot.Vector3`
+- 需要手动转换（Godot不会自动转换）
+
+**命名空间**：
+- Godot适配器使用 `AceMapEditor.Godot.Editor` 命名空间
+- 与Unity的命名空间区分开
+
+### 9. 测试
+
+```bash
+# 在Godot编辑器中启用插件
+# 项目 > 项目设置 > 插件 > Ace Map Editor > 启用
+```
+
+### 10. 优势
+
+- ✅ **Core逻辑复用**：MapEditor、数据模型完全共享
+- ✅ **独立开发**：Unity和Godot互不影响
+- ✅ **同步更新**：修改Core DLL后两个引擎同时受益
+- ✅ **代码量减少**：只需实现适配器层（约500-1000行）
+
+---
+
 ## 重要注意事项
 
 ### 可移植性检查清单
 在编写核心逻辑代码时，确保：
-- [ ] 不直接使用 `UnityEngine.Vector3`（使用自定义 `readonly struct`）
-- [ ] 不直接调用 Unity API（通过接口）
+- [ ] 不直接使用 `UnityEngine.Vector3`（使用 `System.Numerics.Vector3`）
+- [ ] 不直接调用 Unity/Godot API（通过接口）
 - [ ] 数据结构可序列化为标准格式（JSON）
 - [ ] 业务逻辑与 UI 逻辑分离
 
